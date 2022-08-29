@@ -1,19 +1,29 @@
 #!/usr/bin/python3
 
-import socket
+import socketserver
+import threading
 
-HOST = "192.168.7.1"  # Standard loopback interface address (localhost)
-PORT = 65432  # Port to listen on (non-privileged ports are > 1023)
+class UDPHandler(socketserver.DatagramRequestHandler):
+    def handle(self):
+        data = self.request[0].strip()
+        socket = self.request[1]
+        print('{} wrote:'.format(self.client_address[0]))
+        print(data)
+        socket.sendto(data.upper(), self.client_address)
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.bind((HOST, PORT))
-    s.listen()
-    conn, addr = s.accept()
-    with conn:
-        print(f"Connected by {addr}")
+if __name__ == '__main__':
+    HOST, PORT = "192.168.6.1", 65432
+    
+    with socketserver.ThreadingUDPServer((HOST, PORT), UDPHandler) as server:
+        server_thread = threading.Thread(target=server.serve_forever)
+        server_thread.daemon = True
+        server_thread.start()
+
+        def bgproc():
+            print('background process')
+            threading.Timer(0.1, bgproc).start()
+        
+        threading.Timer(0.1, bgproc).start()
+
         while True:
-            data = conn.recv(1024)
-            if data:
-                print(data)
-                # break
-            # conn.sendall(data)
+            ...
